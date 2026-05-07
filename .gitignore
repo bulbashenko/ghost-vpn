@@ -49,3 +49,7 @@ test/detection/**/models/
 
 # DPI analysis output
 /analysis/
+
+# Test reports (contain pcaps and sensitive data — keep local)
+/reports/*/
+!/reports/.gitkeep

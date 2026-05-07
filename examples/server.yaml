@@ -10,10 +10,13 @@ key_file: /etc/letsencrypt/live/example.com/privkey.pem
 # Server Noise IK static private key (base64, from ghost-tools keygen)
 private_key: "YOUR_SERVER_PRIVATE_KEY_HERE"
 
-# Allowed client public keys. Empty list = accept any authenticated client.
+# Allowed client public keys. At least one key is required unless allow_all is set.
+# Generate client public keys with: ghost-tools keygen (use the public key output).
 allowed_clients:
   # - "CLIENT_PUBLIC_KEY_1"
   # - "CLIENT_PUBLIC_KEY_2"
+
+# allow_all: true  # Uncomment to accept any authenticated client (testing only)
 
 # Fallback target: unauthenticated requests are reverse-proxied here.
 # Active probers see this real website, not the GHOST server.

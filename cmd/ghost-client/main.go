@@ -21,6 +21,7 @@ import (
 	"io"
 	"log/slog"
 	mathrand "math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"sync/atomic"
@@ -169,6 +170,50 @@ func main() {
 	}
 	defer tunDev.Close()
 	logger.Info("tun device created", "name", tunDev.Name(), "address", cfg.TUN.Address)
+
+	// Extract the server host (without port) for host routes and kill switch.
+	serverHost, _, err := net.SplitHostPort(cfg.ServerAddr)
+	if err != nil {
+		serverHost = cfg.ServerAddr
+	}
+
+	// DNS leak prevention: rewrite /etc/resolv.conf if dns servers are configured.
+	if len(cfg.TUN.DNS) > 0 {
+		restoreDNS, dnsErr := tun.ApplyDNS(cfg.TUN.DNS)
+		if dnsErr != nil {
+			logger.Warn("dns apply failed", "error", dnsErr)
+		} else {
+			defer restoreDNS()
+			logger.Info("dns configured", "servers", cfg.TUN.DNS)
+		}
+	}
+
+	// Kill switch: block all non-VPN traffic via iptables so nothing leaks
+	// if the tunnel drops.
+	if cfg.TUN.KillSwitch {
+		if ksErr := tun.EnableKillSwitch(tunDev.Name(), serverHost); ksErr != nil {
+			logger.Error("kill switch enable failed", "error", ksErr)
+			os.Exit(1)
+		}
+		defer func() { _ = tun.DisableKillSwitch() }()
+		logger.Info("kill switch enabled", "server_ip", serverHost)
+	}
+
+	// Auto routes: add host route to VPN server via original GW, then set
+	// default route through the TUN interface.
+	if cfg.TUN.AutoRoutes {
+		tunGW, gwErr := tun.GatewayFromAddress(cfg.TUN.Address)
+		if gwErr != nil {
+			logger.Error("compute tun gateway", "error", gwErr)
+			os.Exit(1)
+		}
+		if rtErr := tun.SetupRoutes(serverHost, tunGW); rtErr != nil {
+			logger.Error("setup routes failed", "error", rtErr)
+			os.Exit(1)
+		}
+		defer tun.TeardownRoutes(serverHost)
+		logger.Info("routes configured", "server_ip", serverHost, "tun_gw", tunGW)
+	}
 
 	// Active session — atomic pointer so the TUN→stream goroutine can
 	// always grab the latest one without locking on the hot path.
@@ -445,6 +490,8 @@ func main() {
 	// loop's own swap doesn't race with this watchdog.
 	go func() {
 		sessionStart := make(map[uint64]time.Time)
+		reconnectBackoff := time.Second
+		const maxReconnectBackoff = 60 * time.Second
 		for {
 			select {
 			case <-ctx.Done():
@@ -468,10 +515,19 @@ func main() {
 				logger.Warn("active session died, reconnecting", "session", cur.id)
 				newSess, err := establish(ctx)
 				if err != nil {
-					logger.Error("reconnect failed", "error", err)
-					time.Sleep(5 * time.Second)
+					logger.Error("reconnect failed", "error", err, "retry_in", reconnectBackoff)
+					select {
+					case <-time.After(reconnectBackoff):
+					case <-ctx.Done():
+						return
+					}
+					reconnectBackoff *= 2
+					if reconnectBackoff > maxReconnectBackoff {
+						reconnectBackoff = maxReconnectBackoff
+					}
 					continue
 				}
+				reconnectBackoff = time.Second // reset on success
 				old := activeSession.Swap(newSess)
 				startStreamReader(newSess)
 				logger.Info("reconnected", "new_session", newSess.id)

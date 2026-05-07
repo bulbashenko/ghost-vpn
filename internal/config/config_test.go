@@ -14,6 +14,7 @@ listen: ":443"
 cert_file: /etc/ghost/cert.pem
 key_file: /etc/ghost/key.pem
 private_key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+allow_all: true
 fallback_target: https://example.com
 tun:
   address: "10.7.0.1/24"
@@ -44,17 +45,25 @@ func TestLoadServer_MissingFields(t *testing.T) {
 		name, yaml string
 	}{
 		{"no listen", `private_key: x
+allow_all: true
 fallback_target: https://example.com
 tun: {address: "10.7.0.1/24"}`},
 		{"no private_key", `listen: ":443"
+allow_all: true
 fallback_target: https://example.com
 tun: {address: "10.7.0.1/24"}`},
 		{"no fallback", `listen: ":443"
 private_key: x
+allow_all: true
 tun: {address: "10.7.0.1/24"}`},
 		{"no tun addr", `listen: ":443"
 private_key: x
+allow_all: true
 fallback_target: https://example.com`},
+		{"no allowed_clients and no allow_all", `listen: ":443"
+private_key: x
+fallback_target: https://example.com
+tun: {address: "10.7.0.1/24"}`},
 	}
 
 	for _, tt := range tests {

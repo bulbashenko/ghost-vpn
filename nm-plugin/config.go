@@ -24,10 +24,12 @@ type clientConfig struct {
 }
 
 type tunConfig struct {
-	Name    string   `yaml:"name,omitempty"`
-	Address string   `yaml:"address"`
-	MTU     int      `yaml:"mtu,omitempty"`
-	DNS     []string `yaml:"dns,omitempty"`
+	Name       string   `yaml:"name,omitempty"`
+	Address    string   `yaml:"address"`
+	MTU        int      `yaml:"mtu,omitempty"`
+	DNS        []string `yaml:"dns,omitempty"`
+	AutoRoutes bool     `yaml:"auto_routes"`
+	KillSwitch bool     `yaml:"kill_switch"`
 }
 
 // buildClientConfig maps the NM connection data/secrets dictionaries onto a
@@ -76,6 +78,12 @@ func buildClientConfig(data, secrets map[string]string) (*clientConfig, error) {
 	if cfg.TUN.Name == "" {
 		cfg.TUN.Name = "ghost0"
 	}
+	// Always enable auto_routes so ghost-client pins the server /32 via the
+	// original GW before adding the default route through the TUN. Without
+	// this, NM's route management races and often drops the server route,
+	// breaking the tunnel connection on activation.
+	cfg.TUN.AutoRoutes = true
+	cfg.TUN.KillSwitch = true
 	cfg.TUN.Address = get("tun-addr")
 	if cfg.TUN.Address == "" {
 		return nil, fmt.Errorf("tun-addr is required")

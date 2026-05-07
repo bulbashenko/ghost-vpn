@@ -349,12 +349,17 @@ func (p *Plugin) watchTunAndReport(ctx context.Context, cmd *exec.Cmd, tunName, 
 	// All IP addresses MUST be uint32 (network-byte-order as host uint32).
 	// The key for the VPN-internal peer IP is "internal-gateway", NOT "gateway".
 	// "gateway" (external) belongs in the Config signal; NM ignores it here.
+	// never-default: true tells NM NOT to install a default route via the VPN.
+	// ghost-client handles routing itself (auto_routes: true in the temp config):
+	// it pins the server /32 via the original gateway and then replaces the
+	// default route. This avoids the race where NM installs the VPN default
+	// route before pinning the server host route, which breaks internet access.
 	ip4 := map[string]dbus.Variant{
 		"address":          dbus.MakeVariant(addrU32),
 		"prefix":           dbus.MakeVariant(prefix),
 		"internal-gateway": dbus.MakeVariant(gwU32),
 		"tundev":           dbus.MakeVariant(tunName),
-		"never-default":    dbus.MakeVariant(false),
+		"never-default":    dbus.MakeVariant(true),
 	}
 	if dnsU := parseDNS(dns); len(dnsU) > 0 {
 		ip4["dns"] = dbus.MakeVariant(dnsU)

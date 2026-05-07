@@ -103,6 +103,9 @@ func main() {
 	for _, k := range cfg.AllowedClients {
 		allowedClients[k] = true
 	}
+	if cfg.AllowAll {
+		logger.Warn("allow_all is set — any authenticated client can connect")
+	}
 
 	// Fallback reverse proxy.
 	fb, err := fallback.New(cfg.FallbackTarget)
@@ -207,11 +210,9 @@ func main() {
 
 		clientPub := auth.EncodeKey(resp.PeerStatic())
 
-		// Check allowed clients list.
-		if len(allowedClients) > 0 {
-			if !allowedClients[clientPub] {
-				return nil, nil, fmt.Errorf("client not in allowed list")
-			}
+		// Check allowed clients list (skipped only when allow_all: true).
+		if !cfg.AllowAll && !allowedClients[clientPub] {
+			return nil, nil, fmt.Errorf("client not in allowed list")
 		}
 
 		msg2, session, err := resp.WriteMessage(nil)

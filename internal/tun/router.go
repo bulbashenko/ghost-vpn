@@ -218,15 +218,17 @@ func (r *TunRouter) register(ipKey string) chan []byte {
 	return ch
 }
 
-func (r *TunRouter) unregister(ipKey string) {
+// unregister removes the channel for ipKey only if it still matches myCh.
+// This prevents a departing session from closing a channel that was already
+// replaced by a new session for the same client IP (session rotation race).
+func (r *TunRouter) unregister(ipKey string, myCh chan []byte) {
 	r.mu.Lock()
-	ch, ok := r.routes[ipKey]
-	delete(r.routes, ipKey)
-	r.mu.Unlock()
-	if ok && ch != nil {
-		// Close the channel so the TUN→stream writer goroutine exits cleanly.
-		close(ch)
+	if r.routes[ipKey] == myCh {
+		delete(r.routes, ipKey)
 	}
+	r.mu.Unlock()
+	// Always close our own channel so the TUN→stream goroutine can exit.
+	close(myCh)
 }
 
 // Bridge bridges a mux stream bidirectionally through the TUN device.
@@ -250,7 +252,7 @@ func (r *TunRouter) Bridge(stream *mux.Stream) error {
 	// Register this client before forwarding the first packet so that any
 	// immediate reply from the TUN side lands in our channel.
 	inbound := r.register(srcKey)
-	defer r.unregister(srcKey)
+	defer r.unregister(srcKey, inbound)
 
 	// Forward the first packet to TUN.
 	if isValidIPPacket(first) {

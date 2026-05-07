@@ -20,8 +20,14 @@ type ServerConfig struct {
 	// Server's Noise IK static keypair (base64).
 	PrivateKey string `yaml:"private_key"`
 
-	// Allowed client public keys (base64). Empty = accept any authenticated client.
+	// Allowed client public keys (base64). Empty = refuse to start unless
+	// AllowAll is explicitly set to true.
 	AllowedClients []string `yaml:"allowed_clients"`
+
+	// AllowAll disables the allowed_clients check and lets any client with a
+	// valid Noise IK handshake connect. Dangerous — set only for testing or
+	// when all clients are pre-shared via the Noise static key.
+	AllowAll bool `yaml:"allow_all"`
 
 	// FallbackTarget is the URL to reverse-proxy for unauthenticated requests
 	// (e.g. "https://example.com").
@@ -149,8 +155,20 @@ type TUNConfig struct {
 	// MTU of the TUN device (default 1400 to leave room for encapsulation).
 	MTU int `yaml:"mtu"`
 
-	// DNS server addresses (optional).
+	// DNS server addresses. When set, ghost-client rewrites /etc/resolv.conf
+	// to use these servers and restores the original on shutdown, preventing
+	// DNS queries from leaking outside the tunnel.
 	DNS []string `yaml:"dns"`
+
+	// AutoRoutes configures the default route to go through the VPN tunnel
+	// and adds a host route to the VPN server via the original gateway.
+	// Routes are restored on clean shutdown. Default false.
+	AutoRoutes bool `yaml:"auto_routes"`
+
+	// KillSwitch blocks all non-VPN traffic via iptables when enabled.
+	// Prevents traffic leaks if the tunnel drops unexpectedly.
+	// Also blocks IPv6 to prevent IPv6 leak. Default false.
+	KillSwitch bool `yaml:"kill_switch"`
 }
 
 func (t *TUNConfig) applyDefaults() {
@@ -208,6 +226,9 @@ func (c *ServerConfig) validate() error {
 	}
 	if c.TUN.Address == "" {
 		return fmt.Errorf("config: server.tun.address is required")
+	}
+	if len(c.AllowedClients) == 0 && !c.AllowAll {
+		return fmt.Errorf("config: allowed_clients is empty; set allow_all: true to accept any authenticated client (dangerous)")
 	}
 	return nil
 }
