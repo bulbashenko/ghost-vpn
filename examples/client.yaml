@@ -1,0 +1,23 @@
+# GHOST Client Configuration
+# Generate keypair: ghost-tools keygen
+
+# Server address
+server_addr: "example.com:443"
+
+# SNI override (defaults to host part of server_addr)
+# sni: "example.com"
+
+# Client Noise IK static private key (base64, from ghost-tools keygen)
+private_key: "YOUR_CLIENT_PRIVATE_KEY_HERE"
+
+# Server's static public key (base64, from server's ghost-tools keygen)
+server_public_key: "SERVER_PUBLIC_KEY_HERE"
+
+# Browser TLS fingerprint: chrome, firefox, safari, random
+fingerprint: chrome
+
+# TUN interface
+tun:
+  name: ghost0
+  address: "10.7.0.2/24"
+  mtu: 1400

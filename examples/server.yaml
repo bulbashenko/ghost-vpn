@@ -1,0 +1,26 @@
+# GHOST Server Configuration
+# Generate keypair: ghost-tools keygen
+
+listen: ":443"
+
+# TLS certificate (Let's Encrypt)
+cert_file: /etc/letsencrypt/live/example.com/fullchain.pem
+key_file: /etc/letsencrypt/live/example.com/privkey.pem
+
+# Server Noise IK static private key (base64, from ghost-tools keygen)
+private_key: "YOUR_SERVER_PRIVATE_KEY_HERE"
+
+# Allowed client public keys. Empty list = accept any authenticated client.
+allowed_clients:
+  # - "CLIENT_PUBLIC_KEY_1"
+  # - "CLIENT_PUBLIC_KEY_2"
+
+# Fallback target: unauthenticated requests are reverse-proxied here.
+# Active probers see this real website, not the GHOST server.
+fallback_target: "https://example.com"
+
+# TUN interface
+tun:
+  name: ghost0
+  address: "10.7.0.1/24"
+  mtu: 1400

@@ -1,0 +1,51 @@
+# Claude Code session settings
+.claude/
+docs/
+
+# Operational — deployment configs, scripts, infra. Keep local only.
+/deploy/
+/scripts/
+
+# Local secrets — never commit
+.env.local
+
+# Build artifacts
+/bin/
+/nm-ghost-service
+*.exe
+*.test
+*.out
+
+# Go
+/vendor/
+*.swp
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*~
+
+# Local config (real keys, certs)
+*.local.yaml
+*.local.yml
+/etc/
+/keys/
+*.pem
+*.key
+*.crt
+
+# Packet captures
+*.pcap
+*.pcapng
+
+# ML harness artifacts (Python)
+__pycache__/
+*.pyc
+/.venv/
+/venv/
+test/detection/**/datasets/
+test/detection/**/models/
+
+# DPI analysis output
+/analysis/

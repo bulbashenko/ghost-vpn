@@ -1,0 +1,19 @@
+# ML Detection Harness dependencies
+# Install: pip install -r requirements.txt
+
+# Feature extraction
+scapy>=2.5.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# XGBoost classifier
+xgboost>=2.0.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+
+# CNN classifier
+torch>=2.0.0
+
+# Visualization (optional, for analysis notebooks)
+matplotlib>=3.7.0
+seaborn>=0.12.0

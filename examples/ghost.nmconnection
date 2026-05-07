@@ -1,0 +1,46 @@
+# NetworkManager connection profile for GHOST VPN.
+# Copy to /etc/NetworkManager/system-connections/ and chmod 600.
+# Replace all placeholder values.
+
+[connection]
+id=Ghost VPN
+uuid=00000000-0000-0000-0000-000000000001
+type=vpn
+autoconnect=false
+
+[vpn]
+service-type=org.freedesktop.NetworkManager.ghost
+
+# ── Required settings ──────────────────────────────────────────────────────
+# Server host:port
+data.server-addr=intra.bulbashenko.com:443
+# Server's static Noise IK public key (from ghost-tools keygen on the server)
+data.server-public-key=aPF/hKUwTGHBvreA15TModSpbt93epCdI2ic8vzWDzU=
+# TUN address assigned to this client
+data.tun-addr=10.7.0.2/24
+
+# ── Optional settings ──────────────────────────────────────────────────────
+# SNI override (defaults to host part of server-addr)
+# data.sni=intra.bulbashenko.com
+# CDN front host (domain fronting)
+# data.front-host=
+# TLS fingerprint: chrome (default), firefox, safari, random
+data.fingerprint=chrome
+# TUN device name (default: ghost0)
+# data.tun-name=ghost0
+# TUN MTU (default: 1400)
+# data.tun-mtu=1400
+# Comma-separated DNS servers routed through the tunnel
+# data.dns=1.1.1.1,8.8.8.8
+# Connection lifetime before rotation in seconds (default: 90, 0=disable)
+# data.conn-lifetime-sec=90
+
+[vpn-secrets]
+# Client's private Noise IK key (from ghost-tools keygen)
+private-key=vc0uyhTsbu9Awlq3yKEwQ+7q5qP8zuPSgeIyIpawCDs=
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
